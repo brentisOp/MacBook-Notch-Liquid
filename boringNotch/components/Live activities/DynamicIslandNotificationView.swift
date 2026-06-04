@@ -53,7 +53,7 @@ struct DynamicIslandNotificationView: View {
                 compactBody
             }
         }
-        .background(notificationBackground)
+        .background { notificationBackground }
         .clipShape(notificationShape)
         .overlay(rimOverlay)
         .shadow(color: .black.opacity(isRich ? 0.34 : isOpen ? 0.30 : 0.22), radius: isRich ? 24 : isStatus ? 12 : isOpen ? 16 : 10, y: isRich ? 14 : isStatus ? 5 : isOpen ? 8 : 4)
@@ -68,7 +68,7 @@ struct DynamicIslandNotificationView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(iconForegroundColor)
                 .frame(width: 30, height: 30)
-                .background(iconBackground(size: 30))
+                .background { iconBackground(size: 30) }
 
             VStack(alignment: .leading, spacing: 2) {
                 if let appName = notification.appName, !appName.isEmpty {
@@ -215,7 +215,7 @@ struct DynamicIslandNotificationView: View {
                 }
             }
             .frame(width: 54, height: 54)
-            .background(avatarBackground)
+            .background { avatarBackground }
             .clipShape(Circle())
             .overlay(Circle().stroke(Color.white.opacity(liquidGlassDynamicIsland ? 0.28 : 0.12), lineWidth: 1))
 
@@ -242,7 +242,7 @@ struct DynamicIslandNotificationView: View {
                 }
                 .padding(.horizontal, 12)
                 .frame(height: 34)
-                .background(replyFieldBackground)
+                .background { replyFieldBackground }
                 .clipShape(Capsule(style: .continuous))
                 .overlay(Capsule(style: .continuous).stroke(Color.white.opacity(liquidGlassDynamicIsland ? 0.16 : 0.08), lineWidth: 0.8))
             }
@@ -252,7 +252,7 @@ struct DynamicIslandNotificationView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(primaryTextColor.opacity(0.86))
                     .frame(width: 34, height: 34)
-                    .background(replyFieldBackground)
+                    .background { replyFieldBackground }
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.white.opacity(liquidGlassDynamicIsland ? 0.16 : 0.08), lineWidth: 0.8))
             }
@@ -447,7 +447,7 @@ struct DynamicIslandNotificationView: View {
             return .pink
         case .shortcut:
             return .purple
-        case .info:
+        case .info, .message:
             return liquidGlassDynamicIsland ? Color.white.opacity(0.92) : .white
         }
     }

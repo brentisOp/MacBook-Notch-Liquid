@@ -9,7 +9,6 @@ import Combine
 import Defaults
 import Foundation
 
-@MainActor
 final class DynamicIslandNotificationManager: ObservableObject {
     static let shared = DynamicIslandNotificationManager()
 
@@ -18,18 +17,19 @@ final class DynamicIslandNotificationManager: ObservableObject {
 
     var shouldDeferPresentation: () -> Bool = { false }
 
-    private var dismissTask: Task<Void, Never>?
-    private var deferredPresentationTask: Task<Void, Never>?
+    private var dismissWorkItem: DispatchWorkItem?
+    private var transitionWorkItem: DispatchWorkItem?
+    private var deferredPresentationWorkItem: DispatchWorkItem?
     private var cancellables: Set<AnyCancellable> = []
 
     private let duplicateCoalescingInterval: TimeInterval = 2.0
-    private let transitionSettleDelay: Duration = .milliseconds(180)
-    private let deferredRetryDelay: Duration = .milliseconds(500)
+    private let transitionSettleDelay: TimeInterval = 0.18
+    private let deferredRetryDelay: TimeInterval = 0.50
 
     private init() {
         Defaults.publisher(.enableDynamicIslandNotifications)
             .sink { [weak self] change in
-                Task { @MainActor in
+                DispatchQueue.main.async {
                     guard let self else { return }
                     if !change.newValue {
                         self.dismissCurrent()
@@ -41,25 +41,10 @@ final class DynamicIslandNotificationManager: ObservableObject {
     }
 
     func post(_ notification: DynamicIslandNotification) {
-        guard Defaults[.enableDynamicIslandNotifications] else { return }
-
-        if shouldCoalesce(with: currentNotification, incoming: notification) {
-            currentNotification = notification
-            scheduleDismiss(for: notification)
-            return
+        DispatchQueue.main.async { [weak self] in
+            self?.postOnMain(notification)
         }
-
-        if let lastIndex = pendingNotifications.indices.last,
-           shouldCoalesce(with: pendingNotifications[lastIndex], incoming: notification)
-        {
-            pendingNotifications[lastIndex] = notification
-        } else {
-            pendingNotifications.append(notification)
-        }
-
-        presentNextIfPossible()
     }
-
 
     func postFocusStatus(modeName: String, isEnabled: Bool, duration: TimeInterval = 2.5) {
         guard Defaults[.enableFocusNotifications] else { return }
@@ -96,11 +81,49 @@ final class DynamicIslandNotificationManager: ObservableObject {
     }
 
     func dismissCurrent() {
-        dismissTask?.cancel()
-        dismissTask = nil
+        DispatchQueue.main.async { [weak self] in
+            self?.dismissCurrentOnMain()
+        }
+    }
+
+    func clearQueue() {
+        DispatchQueue.main.async { [weak self] in
+            self?.pendingNotifications.removeAll()
+        }
+    }
+
+    func resumePresentationIfPossible() {
+        DispatchQueue.main.async { [weak self] in
+            self?.presentNextIfPossibleOnMain()
+        }
+    }
+
+    private func postOnMain(_ notification: DynamicIslandNotification) {
+        guard Defaults[.enableDynamicIslandNotifications] else { return }
+
+        if shouldCoalesce(with: currentNotification, incoming: notification) {
+            currentNotification = notification
+            scheduleDismiss(for: notification)
+            return
+        }
+
+        if let lastIndex = pendingNotifications.indices.last,
+           shouldCoalesce(with: pendingNotifications[lastIndex], incoming: notification)
+        {
+            pendingNotifications[lastIndex] = notification
+        } else {
+            pendingNotifications.append(notification)
+        }
+
+        presentNextIfPossibleOnMain()
+    }
+
+    private func dismissCurrentOnMain() {
+        dismissWorkItem?.cancel()
+        dismissWorkItem = nil
 
         guard currentNotification != nil else {
-            presentNextIfPossible()
+            presentNextIfPossibleOnMain()
             return
         }
 
@@ -108,15 +131,7 @@ final class DynamicIslandNotificationManager: ObservableObject {
         scheduleNextAfterTransition()
     }
 
-    func clearQueue() {
-        pendingNotifications.removeAll()
-    }
-
-    func resumePresentationIfPossible() {
-        presentNextIfPossible()
-    }
-
-    private func presentNextIfPossible() {
+    private func presentNextIfPossibleOnMain() {
         guard Defaults[.enableDynamicIslandNotifications] else {
             currentNotification = nil
             pendingNotifications.removeAll()
@@ -130,8 +145,8 @@ final class DynamicIslandNotificationManager: ObservableObject {
             return
         }
 
-        deferredPresentationTask?.cancel()
-        deferredPresentationTask = nil
+        deferredPresentationWorkItem?.cancel()
+        deferredPresentationWorkItem = nil
 
         let nextNotification = pendingNotifications.removeFirst()
         currentNotification = nextNotification
@@ -139,45 +154,40 @@ final class DynamicIslandNotificationManager: ObservableObject {
     }
 
     private func scheduleDismiss(for notification: DynamicIslandNotification) {
-        dismissTask?.cancel()
-        dismissTask = Task { [weak self] in
-            let duration = max(0.1, notification.duration)
-            try? await Task.sleep(for: .seconds(duration))
-            guard !Task.isCancelled else { return }
+        dismissWorkItem?.cancel()
 
-            await MainActor.run {
-                guard self?.currentNotification?.id == notification.id else { return }
-                self?.dismissCurrent()
-            }
+        let item = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            guard self.currentNotification?.id == notification.id else { return }
+            self.dismissCurrentOnMain()
         }
+
+        dismissWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0.1, notification.duration), execute: item)
     }
 
     private func scheduleNextAfterTransition() {
-        let delay = transitionSettleDelay
-        deferredPresentationTask?.cancel()
-        deferredPresentationTask = Task { [weak self] in
-            try? await Task.sleep(for: delay)
-            guard !Task.isCancelled else { return }
+        transitionWorkItem?.cancel()
 
-            await MainActor.run {
-                self?.presentNextIfPossible()
-            }
+        let item = DispatchWorkItem { [weak self] in
+            self?.presentNextIfPossibleOnMain()
         }
+
+        transitionWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + transitionSettleDelay, execute: item)
     }
 
     private func scheduleDeferredPresentationRetry() {
-        let delay = deferredRetryDelay
-        guard deferredPresentationTask == nil else { return }
+        guard deferredPresentationWorkItem == nil else { return }
 
-        deferredPresentationTask = Task { [weak self] in
-            try? await Task.sleep(for: delay)
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                self?.deferredPresentationTask = nil
-                self?.presentNextIfPossible()
-            }
+        let item = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.deferredPresentationWorkItem = nil
+            self.presentNextIfPossibleOnMain()
         }
+
+        deferredPresentationWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + deferredRetryDelay, execute: item)
     }
 
     private func shouldCoalesce(

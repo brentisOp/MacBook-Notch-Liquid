@@ -12,6 +12,7 @@ enum DynamicIslandNotificationKind: String, Codable, Equatable {
     case success
     case warning
     case error
+    case message
     case battery
     case charging
     case focus

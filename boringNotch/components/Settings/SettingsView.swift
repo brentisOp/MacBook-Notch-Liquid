@@ -1601,7 +1601,7 @@ struct Advanced: View {
                 Button("Send Test Dynamic Island Notification") {
                     DynamicIslandNotificationManager.shared.post(
                         DynamicIslandNotification(
-                            kind: .info,
+                            kind: .message,
                             title: "Liam Patterson",
                             subtitle: "Hey, are we still on for coffee later? I might be 10–15 minutes late, traffic looks bad",
                             appName: "WhatsApp",
