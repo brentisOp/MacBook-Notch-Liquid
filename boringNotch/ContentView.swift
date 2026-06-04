@@ -97,9 +97,13 @@ struct ContentView: View {
         notificationManager.currentNotification != nil && !shouldDeferDynamicIslandNotification
     }
 
+    private var notificationPresentationMode: DynamicIslandNotificationPresentationMode {
+        Defaults[.openIslandForNotifications] && vm.notchState == .open ? .rich : .compact
+    }
+
     private var notificationPopupWidth: CGFloat {
-        if vm.notchState == .open {
-            return min(max(320, vm.notchSize.width - 72), 460)
+        if notificationPresentationMode == .rich {
+            return min(max(380, vm.notchSize.width - 56), 520)
         }
 
         return max(300, vm.closedNotchSize.width + 120)
@@ -114,10 +118,10 @@ struct ContentView: View {
             insertion: .opacity
                 .combined(with: .scale(scale: 0.94, anchor: .top))
                 .combined(with: .offset(y: -6))
-                .animation(DynamicIslandAnimations.notificationInsertion),
+                .animation(DynamicIslandAnimations.notificationShellOpen),
             removal: .opacity
                 .combined(with: .scale(scale: 0.96, anchor: .top))
-                .animation(DynamicIslandAnimations.notificationRemoval)
+                .animation(DynamicIslandAnimations.notificationShellClose)
         )
     }
 
@@ -353,10 +357,11 @@ struct ContentView: View {
                       } else if shouldShowDynamicIslandNotification, let notification = notificationManager.currentNotification {
                           DynamicIslandNotificationView(
                               notification: notification,
-                              isOpen: vm.notchState == .open
+                              isOpen: vm.notchState == .open,
+                              presentationMode: notificationPresentationMode
                           )
                           .frame(width: notificationPopupWidth)
-                          .padding(.vertical, vm.notchState == .open ? 4 : 0)
+                          .padding(.vertical, notificationPresentationMode == .rich ? 10 : vm.notchState == .open ? 4 : 0)
                           .transition(dynamicIslandNotificationTransition)
                       } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
                           MusicLiveActivity()

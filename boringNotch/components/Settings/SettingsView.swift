@@ -1601,12 +1601,20 @@ struct Advanced: View {
                 Button("Send Test Dynamic Island Notification") {
                     DynamicIslandNotificationManager.shared.post(
                         DynamicIslandNotification(
-                            kind: .success,
-                            title: "Dynamic Island Notification",
-                            subtitle: "This is a test popup.",
-                            appName: "boring.notch",
-                            iconSystemName: "sparkles",
-                            duration: Defaults[.notificationPopupDuration]
+                            kind: .info,
+                            title: "Liam Patterson",
+                            subtitle: "Hey, are we still on for coffee later? I might be 10–15 minutes late, traffic looks bad",
+                            appName: "WhatsApp",
+                            iconSystemName: "message.fill",
+                            duration: Defaults[.notificationPopupDuration],
+                            senderName: "Liam Patterson",
+                            message: "Hey, are we still on for coffee later? I might be 10–15 minutes late, traffic looks bad",
+                            timestampText: "now",
+                            avatarSystemName: "person.crop.circle.fill",
+                            appBadgeSystemName: "phone.bubble.left.fill",
+                            showsReplyField: true,
+                            replyPlaceholder: "WhatsApp",
+                            showsEmojiButton: true
                         )
                     )
                 }

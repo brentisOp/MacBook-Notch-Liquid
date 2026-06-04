@@ -28,6 +28,15 @@ struct DynamicIslandNotification: Identifiable, Equatable {
     var iconSystemName: String
     var duration: TimeInterval
     var createdAt: Date
+    var senderName: String?
+    var message: String?
+    var timestampText: String?
+    var avatarImageName: String?
+    var avatarSystemName: String?
+    var appBadgeSystemName: String?
+    var showsReplyField: Bool
+    var replyPlaceholder: String?
+    var showsEmojiButton: Bool
 
     init(
         id: UUID = UUID(),
@@ -37,7 +46,16 @@ struct DynamicIslandNotification: Identifiable, Equatable {
         appName: String? = nil,
         iconSystemName: String = "bell.fill",
         duration: TimeInterval = 3.0,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        senderName: String? = nil,
+        message: String? = nil,
+        timestampText: String? = nil,
+        avatarImageName: String? = nil,
+        avatarSystemName: String? = nil,
+        appBadgeSystemName: String? = nil,
+        showsReplyField: Bool = false,
+        replyPlaceholder: String? = nil,
+        showsEmojiButton: Bool = false
     ) {
         self.id = id
         self.kind = kind
@@ -47,5 +65,14 @@ struct DynamicIslandNotification: Identifiable, Equatable {
         self.iconSystemName = iconSystemName
         self.duration = duration
         self.createdAt = createdAt
+        self.senderName = senderName
+        self.message = message
+        self.timestampText = timestampText
+        self.avatarImageName = avatarImageName
+        self.avatarSystemName = avatarSystemName
+        self.appBadgeSystemName = appBadgeSystemName
+        self.showsReplyField = showsReplyField
+        self.replyPlaceholder = replyPlaceholder
+        self.showsEmojiButton = showsEmojiButton
     }
 }

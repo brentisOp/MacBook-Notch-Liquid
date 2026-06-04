@@ -88,6 +88,37 @@ enum DynamicIslandAnimations {
             : .smooth(duration: 0.24).delay(0.06)
     }
 
+
+    static var notificationShellOpen: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.16)
+            : .interpolatingSpring(mass: 0.85, stiffness: 210, damping: 22, initialVelocity: 0.35)
+    }
+
+    static var notificationShellClose: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.12)
+            : .interpolatingSpring(mass: 0.9, stiffness: 270, damping: 31, initialVelocity: 0)
+    }
+
+    static var notificationContentAppear: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.12)
+            : .smooth(duration: 0.24).delay(0.06)
+    }
+
+    static var notificationReplyAppear: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.12)
+            : .smooth(duration: 0.22).delay(0.12)
+    }
+
+    static var notificationContentDisappear: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.1)
+            : .easeOut(duration: 0.15)
+    }
+
     static var notificationInsertion: Animation {
         reduceMotionEnabled
             ? .easeOut(duration: 0.12)
@@ -95,8 +126,6 @@ enum DynamicIslandAnimations {
     }
 
     static var notificationRemoval: Animation {
-        reduceMotionEnabled
-            ? .easeOut(duration: 0.1)
-            : .easeOut(duration: 0.14)
+        notificationContentDisappear
     }
 }
