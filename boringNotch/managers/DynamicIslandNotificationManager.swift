@@ -60,6 +60,41 @@ final class DynamicIslandNotificationManager: ObservableObject {
         presentNextIfPossible()
     }
 
+
+    func postFocusStatus(modeName: String, isEnabled: Bool, duration: TimeInterval = 2.5) {
+        guard Defaults[.enableFocusNotifications] else { return }
+        post(
+            DynamicIslandNotification(
+                kind: .focus,
+                title: isEnabled ? "Focus On" : "Focus Off",
+                subtitle: isEnabled ? modeName : "Notifications resumed",
+                iconSystemName: isEnabled ? "moon.fill" : "moon",
+                duration: duration,
+                focusModeName: modeName,
+                isFocusEnabled: isEnabled
+            )
+        )
+    }
+
+    func postStatus(
+        title: String,
+        subtitle: String? = nil,
+        iconSystemName: String = "info.circle.fill",
+        accent: String? = nil,
+        duration: TimeInterval = 2.5
+    ) {
+        post(
+            DynamicIslandNotification(
+                kind: .status,
+                title: title,
+                subtitle: subtitle,
+                iconSystemName: iconSystemName,
+                duration: duration,
+                statusAccent: accent
+            )
+        )
+    }
+
     func dismissCurrent() {
         dismissTask?.cancel()
         dismissTask = nil

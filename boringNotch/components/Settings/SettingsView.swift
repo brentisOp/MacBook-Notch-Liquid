@@ -1622,6 +1622,89 @@ struct Advanced: View {
             } header: {
                 Text("Dynamic Island Notifications")
             }
+
+            Section {
+                Defaults.Toggle(key: .enableChargingNotifications) {
+                    Text("Charging notifications")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+
+                Defaults.Toggle(key: .enableBatteryStatusNotifications) {
+                    Text("Battery status notifications")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+
+                Defaults.Toggle(key: .enableFocusNotifications) {
+                    Text("Focus mode notifications")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+
+                Button("Send Test Charging Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .charging,
+                            title: "Charging",
+                            subtitle: "87%",
+                            iconSystemName: "battery.100.bolt",
+                            duration: 2.5,
+                            batteryPercent: 87,
+                            isCharging: true,
+                            batteryIconSystemName: "battery.100.bolt"
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications] || !Defaults[.enableChargingNotifications])
+
+                Button("Send Test Battery Low Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .battery,
+                            title: "Battery Low",
+                            subtitle: "18%",
+                            iconSystemName: "battery.25",
+                            duration: 3.0,
+                            batteryPercent: 18,
+                            isCharging: false,
+                            batteryIconSystemName: "battery.25"
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications] || !Defaults[.enableBatteryStatusNotifications])
+
+                Button("Send Test Focus On Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .focus,
+                            title: "Focus On",
+                            subtitle: "Do Not Disturb",
+                            iconSystemName: "moon.fill",
+                            duration: 2.5,
+                            focusModeName: "Do Not Disturb",
+                            isFocusEnabled: true
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications] || !Defaults[.enableFocusNotifications])
+
+                Button("Send Test Focus Off Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .focus,
+                            title: "Focus Off",
+                            subtitle: "Notifications resumed",
+                            iconSystemName: "moon",
+                            duration: 2.5,
+                            focusModeName: "Do Not Disturb",
+                            isFocusEnabled: false
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications] || !Defaults[.enableFocusNotifications])
+            } header: {
+                Text("Status Notifications")
+            } footer: {
+                Text("Focus mode tests use the in-app notification hook. boring.notch does not use private APIs to intercept global Focus changes.")
+            }
             
             Section {
                 HStack {

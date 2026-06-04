@@ -12,6 +12,7 @@ import SwiftUI
 enum DynamicIslandNotificationPresentationMode {
     case compact
     case rich
+    case status
 }
 
 struct DynamicIslandNotificationView: View {
@@ -27,10 +28,14 @@ struct DynamicIslandNotificationView: View {
         presentationMode == .rich
     }
 
+    private var isStatus: Bool {
+        presentationMode == .status || notification.isStatusStyle
+    }
+
     private var notificationShape: NotchShape {
         NotchShape(
-            topCornerRadius: isRich ? 28 : 18,
-            bottomCornerRadius: isRich ? 28 : 18
+            topCornerRadius: isRich ? 28 : isStatus ? 16 : 18,
+            bottomCornerRadius: isRich ? 28 : isStatus ? 16 : 18
         )
     }
 
@@ -42,6 +47,8 @@ struct DynamicIslandNotificationView: View {
         Group {
             if isRich {
                 richBody
+            } else if isStatus {
+                statusBody
             } else {
                 compactBody
             }
@@ -49,7 +56,7 @@ struct DynamicIslandNotificationView: View {
         .background(notificationBackground)
         .clipShape(notificationShape)
         .overlay(rimOverlay)
-        .shadow(color: .black.opacity(isRich ? 0.34 : isOpen ? 0.30 : 0.22), radius: isRich ? 24 : isOpen ? 16 : 10, y: isRich ? 14 : isOpen ? 8 : 4)
+        .shadow(color: .black.opacity(isRich ? 0.34 : isOpen ? 0.30 : 0.22), radius: isRich ? 24 : isStatus ? 12 : isOpen ? 16 : 10, y: isRich ? 14 : isStatus ? 5 : isOpen ? 8 : 4)
         .accessibilityElement(children: .combine)
         .onAppear { stageAppearance() }
         .onChange(of: notification.id) { _, _ in stageAppearance() }
@@ -89,6 +96,58 @@ struct DynamicIslandNotificationView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, notification.subtitle == nil && notification.appName == nil ? 8 : 9)
         .frame(minHeight: 42)
+    }
+
+    private var statusBody: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: statusLeadingIconName)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(statusAccentColor)
+                    .symbolRenderingMode(.hierarchical)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(statusTitleText)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(primaryTextColor)
+                        .lineLimit(1)
+
+                    if notification.kind == .focus, let subtitle = statusSubtitleText {
+                        Text(subtitle)
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(secondaryTextColor.opacity(0.78))
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .opacity(contentVisible ? 1 : 0)
+            .offset(y: contentVisible ? 0 : -3)
+            .animation(DynamicIslandAnimations.statusNotificationContent, value: contentVisible)
+
+            Spacer(minLength: 10)
+
+            if notification.kind == .battery || notification.kind == .charging || notification.batteryPercent != nil {
+                HStack(spacing: 6) {
+                    if let percent = notification.batteryPercent {
+                        Text("\(percent)%")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(primaryTextColor)
+                            .monospacedDigit()
+                    }
+
+                    Image(systemName: notification.batteryIconSystemName ?? batterySymbolName)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(statusAccentColor)
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .opacity(contentVisible ? 1 : 0)
+                .scaleEffect(contentVisible ? 1 : 0.94, anchor: .trailing)
+                .animation(DynamicIslandAnimations.statusNotificationContent, value: contentVisible)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(minHeight: 38)
     }
 
     private var richBody: some View {
@@ -205,7 +264,7 @@ struct DynamicIslandNotificationView: View {
         if liquidGlassDynamicIsland {
             LiquidGlassDynamicIslandBackground(
                 shape: notificationShape,
-                isOpen: isOpen || isRich,
+                isOpen: isOpen || isRich || isStatus,
                 isHovered: true,
                 isNotificationVisible: true
             )
@@ -232,8 +291,8 @@ struct DynamicIslandNotificationView: View {
         notificationShape
             .stroke(
                 liquidGlassDynamicIsland
-                    ? Color.white.opacity(isRich ? 0.32 : isOpen ? 0.30 : 0.24)
-                    : Color.white.opacity(isRich ? 0.12 : 0.08),
+                    ? Color.white.opacity(isRich ? 0.32 : isStatus ? 0.28 : isOpen ? 0.30 : 0.24)
+                    : Color.white.opacity(isRich ? 0.12 : isStatus ? 0.10 : 0.08),
                 lineWidth: liquidGlassDynamicIsland ? 1.0 : 0.75
             )
     }
@@ -293,6 +352,79 @@ struct DynamicIslandNotificationView: View {
         }
     }
 
+    private var statusTitleText: String {
+        if notification.kind == .charging {
+            if notification.isCharging == true { return notification.title.isEmpty ? "Charging" : notification.title }
+            return notification.title.isEmpty ? "Not Charging" : notification.title
+        }
+
+        if notification.kind == .focus {
+            if !notification.title.isEmpty { return notification.title }
+            return notification.isFocusEnabled == true ? "Focus On" : "Focus Off"
+        }
+
+        return notification.title
+    }
+
+    private var statusSubtitleText: String? {
+        notification.focusModeName ?? notification.subtitle
+    }
+
+    private var statusLeadingIconName: String {
+        switch notification.kind {
+        case .charging, .battery:
+            return notification.batteryIconSystemName ?? batterySymbolName
+        case .focus:
+            return notification.isFocusEnabled == true ? "moon.fill" : "moon"
+        default:
+            return notification.iconSystemName
+        }
+    }
+
+    private var batterySymbolName: String {
+        if notification.isCharging == true { return "battery.100.bolt" }
+        guard let percent = notification.batteryPercent else { return notification.iconSystemName }
+        switch percent {
+        case 0...20: return "battery.25"
+        case 21...55: return "battery.50"
+        case 56...85: return "battery.75"
+        default: return "battery.100"
+        }
+    }
+
+    private var statusAccentColor: Color {
+        if let accent = notification.statusAccent?.lowercased() {
+            switch accent {
+            case "green": return .green
+            case "yellow": return .yellow
+            case "orange": return .orange
+            case "red": return .red
+            case "purple": return .purple
+            case "blue": return .blue
+            default: break
+            }
+        }
+
+        if notification.kind == .focus {
+            return notification.isFocusEnabled == true ? .purple : .gray
+        }
+
+        if notification.isCharging == true { return .green }
+        if let percent = notification.batteryPercent {
+            if percent <= 10 { return .red }
+            if percent <= 20 { return .orange }
+            if percent <= 35 { return .yellow }
+        }
+        switch notification.kind {
+        case .battery, .charging:
+            return .green
+        case .status:
+            return .blue
+        default:
+            return iconForegroundColor
+        }
+    }
+
     private var iconForegroundColor: Color {
         switch notification.kind {
         case .success:
@@ -301,8 +433,12 @@ struct DynamicIslandNotificationView: View {
             return .yellow
         case .error:
             return .red
-        case .battery:
-            return .green
+        case .battery, .charging:
+            return statusAccentColor
+        case .focus:
+            return notification.isFocusEnabled == true ? .purple : .gray
+        case .status:
+            return statusAccentColor
         case .download:
             return .blue
         case .calendar:
@@ -342,6 +478,17 @@ struct DynamicIslandNotificationView: View {
             withAnimation(DynamicIslandAnimations.notificationReplyAppear) {
                 replyVisible = true
             }
+        }
+    }
+}
+
+private extension DynamicIslandNotification {
+    var isStatusStyle: Bool {
+        switch kind {
+        case .battery, .charging, .focus, .status:
+            return true
+        default:
+            return batteryPercent != nil || isCharging != nil || isFocusEnabled != nil
         }
     }
 }

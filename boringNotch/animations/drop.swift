@@ -119,6 +119,25 @@ enum DynamicIslandAnimations {
             : .easeOut(duration: 0.15)
     }
 
+
+    static var statusNotificationOpen: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.14)
+            : .interpolatingSpring(mass: 0.85, stiffness: 230, damping: 24, initialVelocity: 0.25)
+    }
+
+    static var statusNotificationClose: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.11)
+            : .interpolatingSpring(mass: 0.9, stiffness: 280, damping: 32, initialVelocity: 0)
+    }
+
+    static var statusNotificationContent: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.10)
+            : .smooth(duration: 0.2).delay(0.04)
+    }
+
     static var notificationInsertion: Animation {
         reduceMotionEnabled
             ? .easeOut(duration: 0.12)

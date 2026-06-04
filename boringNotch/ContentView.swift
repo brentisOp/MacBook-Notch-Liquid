@@ -98,15 +98,24 @@ struct ContentView: View {
     }
 
     private var notificationPresentationMode: DynamicIslandNotificationPresentationMode {
-        Defaults[.openIslandForNotifications] && vm.notchState == .open ? .rich : .compact
+        guard let notification = notificationManager.currentNotification else { return .compact }
+
+        if isStatusNotification(notification) {
+            return .status
+        }
+
+        return Defaults[.openIslandForNotifications] && vm.notchState == .open ? .rich : .compact
     }
 
     private var notificationPopupWidth: CGFloat {
-        if notificationPresentationMode == .rich {
+        switch notificationPresentationMode {
+        case .rich:
             return min(max(380, vm.notchSize.width - 56), 520)
+        case .status:
+            return max(300, vm.closedNotchSize.width + 170)
+        case .compact:
+            return max(300, vm.closedNotchSize.width + 120)
         }
-
-        return max(300, vm.closedNotchSize.width + 120)
     }
 
     private var dynamicIslandNotificationTransition: AnyTransition {
@@ -588,6 +597,17 @@ struct ContentView: View {
         }
     }
 
+    private func isStatusNotification(_ notification: DynamicIslandNotification) -> Bool {
+        switch notification.kind {
+        case .battery, .charging, .focus, .status:
+            return true
+        default:
+            return notification.batteryPercent != nil
+                || notification.isCharging != nil
+                || notification.isFocusEnabled != nil
+        }
+    }
+
     private func configureNotificationDeferral() {
         let viewModel = vm
         let sharedCoordinator = coordinator
@@ -606,7 +626,9 @@ struct ContentView: View {
             return
         }
 
-        guard Defaults[.openIslandForNotifications], !shouldDeferDynamicIslandNotification else { return }
+        guard !isStatusNotification(notification),
+              Defaults[.openIslandForNotifications],
+              !shouldDeferDynamicIslandNotification else { return }
 
         if vm.notchState == .closed {
             openedForNotification = true

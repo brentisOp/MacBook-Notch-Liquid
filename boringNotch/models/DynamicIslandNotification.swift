@@ -13,6 +13,9 @@ enum DynamicIslandNotificationKind: String, Codable, Equatable {
     case warning
     case error
     case battery
+    case charging
+    case focus
+    case status
     case download
     case calendar
     case music
@@ -37,6 +40,12 @@ struct DynamicIslandNotification: Identifiable, Equatable {
     var showsReplyField: Bool
     var replyPlaceholder: String?
     var showsEmojiButton: Bool
+    var batteryPercent: Int?
+    var isCharging: Bool?
+    var batteryIconSystemName: String?
+    var focusModeName: String?
+    var isFocusEnabled: Bool?
+    var statusAccent: String?
 
     init(
         id: UUID = UUID(),
@@ -55,7 +64,13 @@ struct DynamicIslandNotification: Identifiable, Equatable {
         appBadgeSystemName: String? = nil,
         showsReplyField: Bool = false,
         replyPlaceholder: String? = nil,
-        showsEmojiButton: Bool = false
+        showsEmojiButton: Bool = false,
+        batteryPercent: Int? = nil,
+        isCharging: Bool? = nil,
+        batteryIconSystemName: String? = nil,
+        focusModeName: String? = nil,
+        isFocusEnabled: Bool? = nil,
+        statusAccent: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -74,5 +89,11 @@ struct DynamicIslandNotification: Identifiable, Equatable {
         self.showsReplyField = showsReplyField
         self.replyPlaceholder = replyPlaceholder
         self.showsEmojiButton = showsEmojiButton
+        self.batteryPercent = batteryPercent
+        self.isCharging = isCharging
+        self.batteryIconSystemName = batteryIconSystemName
+        self.focusModeName = focusModeName
+        self.isFocusEnabled = isFocusEnabled
+        self.statusAccent = statusAccent
     }
 }
