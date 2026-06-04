@@ -9,6 +9,10 @@ let package = Package(
     name: "boring-notch-build-support",
     platforms: [.macOS(.v14)],
     targets: [
-        .target(name: "BoringNotchBuildSupport")
+        .target(name: "BoringNotchBuildSupport"),
+        .testTarget(
+            name: "BoringNotchBuildSupportTests",
+            dependencies: ["BoringNotchBuildSupport"]
+        )
     ]
 )

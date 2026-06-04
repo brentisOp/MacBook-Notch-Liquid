@@ -1,0 +1,74 @@
+name: Build downloadable app artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      head_ref:
+        description: 'Branch, tag, or SHA to build'
+        required: false
+        default: ''
+      xcode_version:
+        description: 'Xcode version to use'
+        required: false
+        default: '16.4'
+  pull_request:
+    branches:
+      - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  build-artifact:
+    name: Build unsigned app artifact
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.inputs.head_ref || github.ref }}
+
+      - name: Select Xcode
+        env:
+          XCODE_VERSION: ${{ github.event.inputs.xcode_version || '16.4' }}
+        run: |
+          XCODE_PATH="/Applications/Xcode_${XCODE_VERSION}.app"
+          if [[ ! -d "$XCODE_PATH" ]]; then
+            echo "::error::Xcode ${XCODE_VERSION} not found at ${XCODE_PATH}"
+            echo "Available Xcode versions:"
+            ls -d /Applications/Xcode*.app 2>/dev/null || echo "  (none found)"
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE_PATH"
+          xcodebuild -version
+
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project boringNotch.xcodeproj
+
+      - name: Build unsigned Release app
+        run: |
+          xcodebuild build \
+            -project boringNotch.xcodeproj \
+            -scheme boringNotch \
+            -configuration Release \
+            -derivedDataPath build/DerivedData \
+            -destination "generic/platform=macOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO
+
+      - name: Package app bundle
+        run: |
+          APP_PATH="build/DerivedData/Build/Products/Release/boringNotch.app"
+          if [[ ! -d "$APP_PATH" ]]; then
+            echo "::error::Expected app bundle was not produced at $APP_PATH"
+            find build/DerivedData/Build/Products -maxdepth 3 -print || true
+            exit 1
+          fi
+          ditto -c -k --keepParent "$APP_PATH" boringNotch-unsigned-release.zip
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: boringNotch-unsigned-release
+          path: boringNotch-unsigned-release.zip
+          if-no-files-found: error
