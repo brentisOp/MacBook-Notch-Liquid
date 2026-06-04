@@ -621,7 +621,7 @@ struct ContentView: View {
     }
 
     private func handleDynamicIslandNotificationChange(_ notification: DynamicIslandNotification?) {
-        guard notification != nil else {
+        guard let notification else {
             closeNotificationOpenedIslandIfNeeded()
             return
         }
