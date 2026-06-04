@@ -1415,6 +1415,7 @@ struct Advanced: View {
     @Default(.extendHoverArea) var extendHoverArea
     @Default(.showOnLockScreen) var showOnLockScreen
     @Default(.hideFromScreenRecording) var hideFromScreenRecording
+    @Default(.notificationPopupDuration) var notificationPopupDuration
     
     @State private var customAccentColor: Color = .accentColor
     @State private var selectedPresetColor: PresetAccentColor? = nil
@@ -1564,8 +1565,54 @@ struct Advanced: View {
                 Defaults.Toggle(key: .cornerRadiusScaling) {
                     Text("Corner radius scaling")
                 }
+                Defaults.Toggle(key: .liquidGlassDynamicIsland) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Liquid Glass Dynamic Island")
+                        Text("Transform the Dynamic Island into a translucent Liquid Glass design.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             } header: {
                 Text("Window Appearance")
+            }
+
+            Section {
+                Defaults.Toggle(key: .enableDynamicIslandNotifications) {
+                    Text("Show notifications in Dynamic Island")
+                }
+                Defaults.Toggle(key: .openIslandForNotifications) {
+                    Text("Open Dynamic Island for notifications")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+
+                Slider(value: $notificationPopupDuration, in: 1.5...8.0, step: 0.5) {
+                    Text("Notification duration")
+                } minimumValueLabel: {
+                    Text("1.5s")
+                } maximumValueLabel: {
+                    Text("8s")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+                Text("Notification duration: \(notificationPopupDuration, specifier: "%.1f") seconds")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button("Send Test Dynamic Island Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .success,
+                            title: "Dynamic Island Notification",
+                            subtitle: "This is a test popup.",
+                            appName: "boring.notch",
+                            iconSystemName: "sparkles",
+                            duration: Defaults[.notificationPopupDuration]
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+            } header: {
+                Text("Dynamic Island Notifications")
             }
             
             Section {
