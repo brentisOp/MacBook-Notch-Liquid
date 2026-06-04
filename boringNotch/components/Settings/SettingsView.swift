@@ -1415,6 +1415,7 @@ struct Advanced: View {
     @Default(.extendHoverArea) var extendHoverArea
     @Default(.showOnLockScreen) var showOnLockScreen
     @Default(.hideFromScreenRecording) var hideFromScreenRecording
+    @Default(.notificationPopupDuration) var notificationPopupDuration
     
     @State private var customAccentColor: Color = .accentColor
     @State private var selectedPresetColor: PresetAccentColor? = nil
@@ -1564,8 +1565,145 @@ struct Advanced: View {
                 Defaults.Toggle(key: .cornerRadiusScaling) {
                     Text("Corner radius scaling")
                 }
+                Defaults.Toggle(key: .liquidGlassDynamicIsland) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Liquid Glass Dynamic Island")
+                        Text("Transform the Dynamic Island into a translucent Liquid Glass design.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             } header: {
                 Text("Window Appearance")
+            }
+
+            Section {
+                Defaults.Toggle(key: .enableDynamicIslandNotifications) {
+                    Text("Show notifications in Dynamic Island")
+                }
+                Defaults.Toggle(key: .openIslandForNotifications) {
+                    Text("Open Dynamic Island for notifications")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+
+                Slider(value: $notificationPopupDuration, in: 1.5...8.0, step: 0.5) {
+                    Text("Notification duration")
+                } minimumValueLabel: {
+                    Text("1.5s")
+                } maximumValueLabel: {
+                    Text("8s")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+                Text("Notification duration: \(notificationPopupDuration, specifier: "%.1f") seconds")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button("Send Test Dynamic Island Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .info,
+                            title: "Liam Patterson",
+                            subtitle: "Hey, are we still on for coffee later? I might be 10–15 minutes late, traffic looks bad",
+                            appName: "WhatsApp",
+                            iconSystemName: "message.fill",
+                            duration: Defaults[.notificationPopupDuration],
+                            senderName: "Liam Patterson",
+                            message: "Hey, are we still on for coffee later? I might be 10–15 minutes late, traffic looks bad",
+                            timestampText: "now",
+                            avatarSystemName: "person.crop.circle.fill",
+                            appBadgeSystemName: "phone.bubble.left.fill",
+                            showsReplyField: true,
+                            replyPlaceholder: "WhatsApp",
+                            showsEmojiButton: true
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+            } header: {
+                Text("Dynamic Island Notifications")
+            }
+
+            Section {
+                Defaults.Toggle(key: .enableChargingNotifications) {
+                    Text("Charging notifications")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+
+                Defaults.Toggle(key: .enableBatteryStatusNotifications) {
+                    Text("Battery status notifications")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+
+                Defaults.Toggle(key: .enableFocusNotifications) {
+                    Text("Focus mode notifications")
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications])
+
+                Button("Send Test Charging Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .charging,
+                            title: "Charging",
+                            subtitle: "87%",
+                            iconSystemName: "battery.100.bolt",
+                            duration: 2.5,
+                            batteryPercent: 87,
+                            isCharging: true,
+                            batteryIconSystemName: "battery.100.bolt"
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications] || !Defaults[.enableChargingNotifications])
+
+                Button("Send Test Battery Low Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .battery,
+                            title: "Battery Low",
+                            subtitle: "18%",
+                            iconSystemName: "battery.25",
+                            duration: 3.0,
+                            batteryPercent: 18,
+                            isCharging: false,
+                            batteryIconSystemName: "battery.25"
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications] || !Defaults[.enableBatteryStatusNotifications])
+
+                Button("Send Test Focus On Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .focus,
+                            title: "Focus On",
+                            subtitle: "Do Not Disturb",
+                            iconSystemName: "moon.fill",
+                            duration: 2.5,
+                            focusModeName: "Do Not Disturb",
+                            isFocusEnabled: true
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications] || !Defaults[.enableFocusNotifications])
+
+                Button("Send Test Focus Off Notification") {
+                    DynamicIslandNotificationManager.shared.post(
+                        DynamicIslandNotification(
+                            kind: .focus,
+                            title: "Focus Off",
+                            subtitle: "Notifications resumed",
+                            iconSystemName: "moon",
+                            duration: 2.5,
+                            focusModeName: "Do Not Disturb",
+                            isFocusEnabled: false
+                        )
+                    )
+                }
+                .disabled(!Defaults[.enableDynamicIslandNotifications] || !Defaults[.enableFocusNotifications])
+            } header: {
+                Text("Status Notifications")
+            } footer: {
+                Text("Focus mode tests use the in-app notification hook. boring.notch does not use private APIs to intercept global Focus changes.")
             }
             
             Section {

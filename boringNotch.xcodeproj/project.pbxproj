@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		11AA10012F00000100000001 /* DynamicIslandNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AA10002F00000100000001 /* DynamicIslandNotification.swift */; };
+		11AA10032F00000100000001 /* DynamicIslandNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AA10022F00000100000001 /* DynamicIslandNotificationManager.swift */; };
+		11AA10052F00000100000001 /* DynamicIslandNotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AA10042F00000100000001 /* DynamicIslandNotificationView.swift */; };
+		11AA00012F00000100000001 /* LiquidGlassDynamicIslandBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AA00002F00000100000001 /* LiquidGlassDynamicIslandBackground.swift */; };
 		1100290C2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */; };
 		110029272E84FD4C00035A57 /* TemporaryFileStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */; };
 		1100292A2E8691B400035A57 /* FileShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029292E8691B400035A57 /* FileShareView.swift */; };
@@ -181,6 +185,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		11AA10002F00000100000001 /* DynamicIslandNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandNotification.swift; sourceTree = "<group>"; };
+		11AA10022F00000100000001 /* DynamicIslandNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandNotificationManager.swift; sourceTree = "<group>"; };
+		11AA10042F00000100000001 /* DynamicIslandNotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandNotificationView.swift; sourceTree = "<group>"; };
+		11AA00002F00000100000001 /* LiquidGlassDynamicIslandBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassDynamicIslandBackground.swift; sourceTree = "<group>"; };
 		1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSItemProvider+LoadHelpers.swift"; sourceTree = "<group>"; };
 		110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryFileStorageService.swift; sourceTree = "<group>"; };
 		110029292E8691B400035A57 /* FileShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShareView.swift; sourceTree = "<group>"; };
@@ -513,6 +521,7 @@
 				11D58EA12E760AE100FA8377 /* ImageService.swift */,
 				F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */,
 				112FB7342CCF16F70015238C /* NotchSpaceManager.swift */,
+				11AA10022F00000100000001 /* DynamicIslandNotificationManager.swift */,
 				147163992C5D35FF0068B555 /* MusicManager.swift */,
 				149E0B962C737D00006418B1 /* WebcamManager.swift */,
 				14C08BB52C8DE42D000F8AA0 /* CalendarManager.swift */,
@@ -627,6 +636,7 @@
 			isa = PBXGroup;
 			children = (
 				11F748812ECB07A400F841DB /* MusicControlButton.swift */,
+				11AA10002F00000100000001 /* DynamicIslandNotification.swift */,
 				118D1FD02E98FF5F00A2FF63 /* SharingStateManager.swift */,
 				1163988E2DF5CC870052E6AF /* CalendarModel.swift */,
 				1163988C2DF5CAB40052E6AF /* EventModel.swift */,
@@ -705,6 +715,7 @@
 			isa = PBXGroup;
 			children = (
 				1194E8862EA6DDA7009C82D6 /* BoringNotchSkyLightWindow.swift */,
+				11AA00002F00000100000001 /* LiquidGlassDynamicIslandBackground.swift */,
 				1160F8D72DD98230006FBB94 /* NotchShape.swift */,
 				9AB0C6BB2C73C9CB00F7CD30 /* NotchHomeView.swift */,
 				14D570C52C5F38210011E668 /* BoringHeader.swift */,
@@ -731,6 +742,7 @@
 			isa = PBXGroup;
 			children = (
 				115C12EB2ED3D003009754CA /* OpenNotchHUD.swift */,
+				11AA10042F00000100000001 /* DynamicIslandNotificationView.swift */,
 				14D570CC2C5F4BB70011E668 /* BoringBattery.swift */,
 				B1C974332C642B6D0000E707 /* MarqueeTextView.swift */,
 				B1D365CD2C6A979C0047BDBC /* LiveActivityModifier.swift */,
@@ -931,6 +943,10 @@
 				59D8C23C2E589FAA00147B33 /* VolumeManager.swift in Sources */,
 				1163988D2DF5CAB40052E6AF /* EventModel.swift in Sources */,
 				14D570B92C5E98A20011E668 /* drop.swift in Sources */,
+				11AA00012F00000100000001 /* LiquidGlassDynamicIslandBackground.swift in Sources */,
+				11AA10012F00000100000001 /* DynamicIslandNotification.swift in Sources */,
+				11AA10032F00000100000001 /* DynamicIslandNotificationManager.swift in Sources */,
+				11AA10052F00000100000001 /* DynamicIslandNotificationView.swift in Sources */,
 				11EFCD702E8E92D600D0B974 /* ShelfItemViewModel.swift in Sources */,
 				1153BDA72D99B22200979FB0 /* YouTubeMusicController.swift in Sources */,
 				1163988F2DF5CC870052E6AF /* CalendarModel.swift in Sources */,

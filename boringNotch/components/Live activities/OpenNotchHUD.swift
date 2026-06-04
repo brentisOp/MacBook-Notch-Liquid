@@ -70,11 +70,18 @@ struct OpenNotchHUD: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(Color.black)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
+        .background {
+            if Defaults[.liquidGlassDynamicIsland] {
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .overlay(Capsule().fill(Color.black.opacity(0.16)))
+                    .overlay(Capsule().stroke(Color.white.opacity(0.20), lineWidth: 0.8))
+            } else {
+                Capsule()
+                    .fill(Color.black)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            }
+        }
     }
     
     func SpeakerSymbol(_ value: CGFloat) -> String {

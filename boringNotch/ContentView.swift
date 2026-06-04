@@ -6,6 +6,7 @@
 //  Modified by Richard Kunkli on 24/08/2024.
 //
 
+import AppKit
 import AVFoundation
 import Combine
 import Defaults
@@ -21,11 +22,13 @@ struct ContentView: View {
     @ObservedObject var coordinator = BoringViewCoordinator.shared
     @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
+    @ObservedObject var notificationManager = DynamicIslandNotificationManager.shared
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
+    @State private var openedForNotification: Bool = false
 
     @State private var gestureProgress: CGFloat = .zero
 
@@ -36,9 +39,7 @@ struct ContentView: View {
     @Default(.useMusicVisualizer) var useMusicVisualizer
 
     @Default(.showNotHumanFace) var showNotHumanFace
-
-    // Shared interactive spring for movement/resizing to avoid conflicting animations
-    private let animationSpring = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
+    @Default(.liquidGlassDynamicIsland) private var liquidGlassDynamicIsland
 
     private let extendedHoverPadding: CGFloat = 30
     private let zeroHeightHoverPadding: CGFloat = 10
@@ -80,6 +81,59 @@ struct ContentView: View {
         return chinWidth
     }
 
+    private var isImportantExpandingActivityVisible: Bool {
+        coordinator.expandingView.show
+            && (coordinator.expandingView.type == .battery || coordinator.expandingView.type == .download)
+    }
+
+    private var shouldDeferDynamicIslandNotification: Bool {
+        vm.anyDropZoneTargeting
+            || coordinator.sneakPeek.show
+            || isImportantExpandingActivityVisible
+            || (vm.notchState == .open && coordinator.currentView == .shelf)
+    }
+
+    private var shouldShowDynamicIslandNotification: Bool {
+        notificationManager.currentNotification != nil && !shouldDeferDynamicIslandNotification
+    }
+
+    private var notificationPresentationMode: DynamicIslandNotificationPresentationMode {
+        guard let notification = notificationManager.currentNotification else { return .compact }
+
+        if isStatusNotification(notification) {
+            return .status
+        }
+
+        return Defaults[.openIslandForNotifications] && vm.notchState == .open ? .rich : .compact
+    }
+
+    private var notificationPopupWidth: CGFloat {
+        switch notificationPresentationMode {
+        case .rich:
+            return min(max(380, vm.notchSize.width - 56), 520)
+        case .status:
+            return max(300, vm.closedNotchSize.width + 170)
+        case .compact:
+            return max(300, vm.closedNotchSize.width + 120)
+        }
+    }
+
+    private var dynamicIslandNotificationTransition: AnyTransition {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            return .opacity.animation(DynamicIslandAnimations.notificationRemoval)
+        }
+
+        return .asymmetric(
+            insertion: .opacity
+                .combined(with: .scale(scale: 0.94, anchor: .top))
+                .combined(with: .offset(y: -6))
+                .animation(DynamicIslandAnimations.notificationShellOpen),
+            removal: .opacity
+                .combined(with: .scale(scale: 0.96, anchor: .top))
+                .animation(DynamicIslandAnimations.notificationShellClose)
+        )
+    }
+
     var body: some View {
         // Calculate scale based on gesture progress only
         let gestureScale: CGFloat = {
@@ -100,11 +154,22 @@ struct ContentView: View {
                         : cornerRadiusInsets.closed.bottom
                     )
                     .padding([.horizontal, .bottom], vm.notchState == .open ? 12 : 0)
-                    .background(.black)
+                    .background {
+                        if liquidGlassDynamicIsland {
+                            LiquidGlassDynamicIslandBackground(
+                                shape: currentNotchShape,
+                                isOpen: vm.notchState == .open,
+                                isHovered: isHovering,
+                                isNotificationVisible: shouldShowDynamicIslandNotification
+                            )
+                        } else {
+                            Color.black
+                        }
+                    }
                     .clipShape(currentNotchShape)
                     .overlay(alignment: .top) {
                         Rectangle()
-                            .fill(.black)
+                            .fill(liquidGlassDynamicIsland ? Color.white.opacity(vm.notchState == .open || isHovering ? 0.10 : 0.04) : Color.black)
                             .frame(height: 1)
                             .padding(.horizontal, topCornerRadius)
                     }
@@ -119,14 +184,13 @@ struct ContentView: View {
                 
                 mainLayout
                     .frame(height: vm.notchState == .open ? vm.notchSize.height : nil)
-                    .conditionalModifier(true) { view in
-                        let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
-                        let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
-                        
-                        return view
-                            .animation(vm.notchState == .open ? openAnimation : closeAnimation, value: vm.notchState)
-                            .animation(.smooth, value: gestureProgress)
-                    }
+                    .animation(
+                        vm.notchState == .open
+                            ? DynamicIslandAnimations.openShell
+                            : DynamicIslandAnimations.closeShell,
+                        value: vm.notchState
+                    )
+                    .animation(DynamicIslandAnimations.gestureStretch, value: gestureProgress)
                     .contentShape(Rectangle())
                     .onHover { hovering in
                         handleHover(hovering)
@@ -154,7 +218,7 @@ struct ContentView: View {
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
                                     if self.vm.notchState == .open && !self.isHovering && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose {
-                                        self.vm.close()
+                                        self.doClose()
                                     }
                                 }
                             }
@@ -162,7 +226,7 @@ struct ContentView: View {
                     }
                     .onChange(of: vm.notchState) { _, newState in
                         if newState == .closed && isHovering {
-                            withAnimation {
+                            withAnimation(DynamicIslandAnimations.hoverLift) {
                                 isHovering = false
                             }
                         }
@@ -175,7 +239,7 @@ struct ContentView: View {
                                 guard !Task.isCancelled else { return }
                                 await MainActor.run {
                                     if !self.vm.isBatteryPopoverActive && !self.isHovering && self.vm.notchState == .open && !SharingStateManager.shared.preventNotchClose {
-                                        self.vm.close()
+                                        self.doClose()
                                     }
                                 }
                             }
@@ -197,7 +261,7 @@ struct ContentView: View {
                     }
                 if vm.chinHeight > 0 {
                     Rectangle()
-                        .fill(Color.black.opacity(0.01))
+                        .fill(liquidGlassDynamicIsland ? Color.black.opacity(0.035) : Color.black.opacity(0.01))
                         .frame(width: computedChinWidth, height: vm.chinHeight)
                 }
             }
@@ -210,10 +274,22 @@ struct ContentView: View {
             y: gestureScale,
             anchor: .top
         )
-        .animation(.smooth, value: gestureProgress)
+        .animation(DynamicIslandAnimations.gestureStretch, value: gestureProgress)
         .background(dragDetector)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
+        .onAppear {
+            configureNotificationDeferral()
+        }
+        .onChange(of: notificationManager.currentNotification) { _, notification in
+            handleDynamicIslandNotificationChange(notification)
+        }
+        .onChange(of: shouldDeferDynamicIslandNotification) { _, isDeferred in
+            if !isDeferred {
+                notificationManager.resumePresentationIfPossible()
+                handleDynamicIslandNotificationChange(notificationManager.currentNotification)
+            }
+        }
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 
@@ -236,7 +312,7 @@ struct ContentView: View {
 
                 vm.dropEvent = false
                 if !SharingStateManager.shared.preventNotchClose {
-                    vm.close()
+                    doClose()
                 }
             }
         }
@@ -264,11 +340,11 @@ struct ContentView: View {
                             HStack {
                                 Text(batteryModel.statusText)
                                     .font(.subheadline)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(liquidGlassDynamicIsland ? Color.white.opacity(0.88) : .white)
                             }
 
                             Rectangle()
-                                .fill(.black)
+                                .fill(notchInteriorFillerColor)
                                 .frame(width: vm.closedNotchSize.width + 10)
 
                             HStack {
@@ -287,6 +363,15 @@ struct ContentView: View {
                       } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && (coordinator.sneakPeek.type != .battery) && vm.notchState == .closed {
                           InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                               .transition(.opacity)
+                      } else if shouldShowDynamicIslandNotification, let notification = notificationManager.currentNotification {
+                          DynamicIslandNotificationView(
+                              notification: notification,
+                              isOpen: vm.notchState == .open,
+                              presentationMode: notificationPresentationMode
+                          )
+                          .frame(width: notificationPopupWidth)
+                          .padding(.vertical, notificationPresentationMode == .rich ? 10 : vm.notchState == .open ? 4 : 0)
+                          .transition(dynamicIslandNotificationTransition)
                       } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
                           MusicLiveActivity()
                               .frame(alignment: .center)
@@ -352,9 +437,15 @@ struct ContentView: View {
                     }
                 }
                 .transition(
-                    .scale(scale: 0.8, anchor: .top)
-                    .combined(with: .opacity)
-                    .animation(.smooth(duration: 0.35))
+                    .asymmetric(
+                        insertion: .scale(scale: 0.92, anchor: .top)
+                            .combined(with: .opacity)
+                            .combined(with: .offset(y: -8))
+                            .animation(DynamicIslandAnimations.contentAppear),
+                        removal: .opacity
+                            .combined(with: .scale(scale: 0.96, anchor: .top))
+                            .animation(DynamicIslandAnimations.contentDisappear)
+                    )
                 )
                 .zIndex(1)
                 .allowsHitTesting(vm.notchState == .open)
@@ -375,7 +466,7 @@ struct ContentView: View {
                         height: max(0, vm.effectiveClosedNotchHeight - 12)
                     )
                 Rectangle()
-                    .fill(.black)
+                    .fill(notchInteriorFillerColor)
                     .frame(width: vm.closedNotchSize.width - 20)
                 MinimalFaceFeatures()
             }
@@ -402,7 +493,7 @@ struct ContentView: View {
                 )
 
             Rectangle()
-                .fill(.black)
+                .fill(notchInteriorFillerColor)
                 .overlay(
                     HStack(alignment: .top) {
                         if coordinator.expandingView.show
@@ -410,8 +501,10 @@ struct ContentView: View {
                         {
                             MarqueeText(
                                 .constant(musicManager.songTitle),
-                                textColor: Defaults[.coloredSpectrogram]
-                                    ? Color(nsColor: musicManager.avgColor) : Color.gray,
+                                textColor: liquidGlassDynamicIsland
+                                    ? Color.white.opacity(0.88)
+                                    : Defaults[.coloredSpectrogram]
+                                        ? Color(nsColor: musicManager.avgColor) : Color.gray,
                                 minDuration: 0.4,
                                 frameWidth: 100
                             )
@@ -426,9 +519,11 @@ struct ContentView: View {
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                                 .foregroundStyle(
-                                    Defaults[.coloredSpectrogram]
-                                        ? Color(nsColor: musicManager.avgColor)
-                                        : Color.gray
+                                    liquidGlassDynamicIsland
+                                        ? Color.white.opacity(0.62)
+                                        : Defaults[.coloredSpectrogram]
+                                            ? Color(nsColor: musicManager.avgColor)
+                                            : Color.gray
                                 )
                                 .opacity(
                                     (coordinator.expandingView.show
@@ -502,9 +597,71 @@ struct ContentView: View {
         }
     }
 
+    private func isStatusNotification(_ notification: DynamicIslandNotification) -> Bool {
+        switch notification.kind {
+        case .battery, .charging, .focus, .status:
+            return true
+        default:
+            return notification.batteryPercent != nil
+                || notification.isCharging != nil
+                || notification.isFocusEnabled != nil
+        }
+    }
+
+    private func configureNotificationDeferral() {
+        let viewModel = vm
+        let sharedCoordinator = coordinator
+        notificationManager.shouldDeferPresentation = {
+            viewModel.anyDropZoneTargeting
+                || sharedCoordinator.sneakPeek.show
+                || (sharedCoordinator.expandingView.show
+                    && (sharedCoordinator.expandingView.type == .battery || sharedCoordinator.expandingView.type == .download))
+                || (viewModel.notchState == .open && sharedCoordinator.currentView == .shelf)
+        }
+    }
+
+    private func handleDynamicIslandNotificationChange(_ notification: DynamicIslandNotification?) {
+        guard notification != nil else {
+            closeNotificationOpenedIslandIfNeeded()
+            return
+        }
+
+        guard !isStatusNotification(notification),
+              Defaults[.openIslandForNotifications],
+              !shouldDeferDynamicIslandNotification else { return }
+
+        if vm.notchState == .closed {
+            openedForNotification = true
+            doOpen()
+        }
+    }
+
+    private func closeNotificationOpenedIslandIfNeeded() {
+        guard openedForNotification else { return }
+
+        openedForNotification = false
+        if vm.notchState == .open
+            && !isHovering
+            && !vm.isBatteryPopoverActive
+            && !SharingStateManager.shared.preventNotchClose
+        {
+            doClose()
+        }
+    }
+
+    private var notchInteriorFillerColor: Color {
+        liquidGlassDynamicIsland ? Color.black.opacity(0.08) : Color.black
+    }
+
     private func doOpen() {
-        withAnimation(animationSpring) {
+        withAnimation(DynamicIslandAnimations.openShell) {
             vm.open()
+        }
+    }
+
+    private func doClose() {
+        withAnimation(DynamicIslandAnimations.closeShell) {
+            vm.close()
         }
     }
 
@@ -515,7 +672,7 @@ struct ContentView: View {
         hoverTask?.cancel()
         
         if hovering {
-            withAnimation(animationSpring) {
+            withAnimation(DynamicIslandAnimations.hoverLift) {
                 isHovering = true
             }
             
@@ -545,12 +702,12 @@ struct ContentView: View {
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
-                    withAnimation(animationSpring) {
+                    withAnimation(DynamicIslandAnimations.hoverLift) {
                         self.isHovering = false
                     }
                     
                     if self.vm.notchState == .open && !self.vm.isBatteryPopoverActive && !SharingStateManager.shared.preventNotchClose {
-                        self.vm.close()
+                        self.doClose()
                     }
                 }
             }
@@ -563,11 +720,11 @@ struct ContentView: View {
         guard vm.notchState == .closed else { return }
 
         if phase == .ended {
-            withAnimation(animationSpring) { gestureProgress = .zero }
+            withAnimation(DynamicIslandAnimations.gestureStretch) { gestureProgress = .zero }
             return
         }
 
-        withAnimation(animationSpring) {
+        withAnimation(DynamicIslandAnimations.gestureStretch) {
             gestureProgress = (translation / Defaults[.gestureSensitivity]) * 20
         }
 
@@ -575,7 +732,7 @@ struct ContentView: View {
             if Defaults[.enableHaptics] {
                 haptics.toggle()
             }
-            withAnimation(animationSpring) {
+            withAnimation(DynamicIslandAnimations.gestureStretch) {
                 gestureProgress = .zero
             }
             doOpen()
@@ -585,23 +742,23 @@ struct ContentView: View {
     private func handleUpGesture(translation: CGFloat, phase: NSEvent.Phase) {
         guard vm.notchState == .open && !vm.isHoveringCalendar else { return }
 
-        withAnimation(animationSpring) {
+        withAnimation(DynamicIslandAnimations.gestureStretch) {
             gestureProgress = (translation / Defaults[.gestureSensitivity]) * -20
         }
 
         if phase == .ended {
-            withAnimation(animationSpring) {
+            withAnimation(DynamicIslandAnimations.gestureStretch) {
                 gestureProgress = .zero
             }
         }
 
         if translation > Defaults[.gestureSensitivity] {
-            withAnimation(animationSpring) {
+            withAnimation(DynamicIslandAnimations.hoverLift) {
                 isHovering = false
             }
             if !SharingStateManager.shared.preventNotchClose { 
                 gestureProgress = .zero
-                vm.close()
+                doClose()
             }
 
             if Defaults[.enableHaptics] {

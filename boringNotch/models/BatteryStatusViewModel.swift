@@ -8,6 +8,8 @@ import SwiftUI
 class BatteryStatusViewModel: ObservableObject {
 
     private var wasCharging: Bool = false
+    private var lowBatteryNotificationSent: Bool = false
+    private var fullChargeNotificationSent: Bool = false
     private var powerSourceChangedCallback: IOPowerSourceCallbackType?
     private var runLoopSource: Unmanaged<CFRunLoopSource>?
 
@@ -65,6 +67,7 @@ class BatteryStatusViewModel: ObservableObject {
             withAnimation {
                 self.levelBattery = level
             }
+            self.postBatteryStatusNotificationIfNeeded(level: level)
 
         case .lowPowerModeChanged(let isEnabled):
             print("⚡ Low power mode: \(isEnabled ? "Enabled" : "Disabled")")
@@ -78,6 +81,7 @@ class BatteryStatusViewModel: ObservableObject {
             print("🔌 Charging: \(isCharging ? "Yes" : "No")")
             print("maxCapacity: \(self.maxCapacity)")
             print("levelBattery: \(self.levelBattery)")
+            let previousChargingState = self.isCharging
             self.notifyImportanChangeStatus()
             withAnimation {
                 self.isCharging = isCharging
@@ -86,6 +90,8 @@ class BatteryStatusViewModel: ObservableObject {
                     ? "Charging battery"
                     : (self.levelBattery < self.maxCapacity ? "Not charging" : "Full charge")
             }
+            self.postChargingNotificationIfNeeded(isCharging: isCharging, previousChargingState: previousChargingState)
+            self.postFullChargeNotificationIfNeeded()
 
         case .timeToFullChargeChanged(let time):
             print("🕒 Time to full charge: \(time) minutes")
@@ -101,6 +107,94 @@ class BatteryStatusViewModel: ObservableObject {
 
         case .error(let description):
             print("⚠️ Error: \(description)")
+        }
+    }
+
+
+    private func postChargingNotificationIfNeeded(isCharging: Bool, previousChargingState: Bool) {
+        guard Defaults[.enableDynamicIslandNotifications], Defaults[.enableChargingNotifications] else { return }
+        guard previousChargingState != isCharging else { return }
+
+        let percent = Int(levelBattery.rounded())
+        postDynamicIslandNotification(
+            DynamicIslandNotification(
+                kind: .charging,
+                title: isCharging ? "Charging" : "Not Charging",
+                subtitle: "\(percent)%",
+                iconSystemName: isCharging ? "battery.100.bolt" : batteryIconName(for: percent),
+                duration: 2.5,
+                batteryPercent: percent,
+                isCharging: isCharging,
+                batteryIconSystemName: isCharging ? "battery.100.bolt" : batteryIconName(for: percent)
+            )
+        )
+
+        if isCharging {
+            lowBatteryNotificationSent = false
+            fullChargeNotificationSent = false
+        }
+    }
+
+    private func postBatteryStatusNotificationIfNeeded(level: Float) {
+        guard Defaults[.enableDynamicIslandNotifications], Defaults[.enableBatteryStatusNotifications] else { return }
+
+        let percent = Int(level.rounded())
+        if percent <= 20 && !isCharging && !isPluggedIn && !lowBatteryNotificationSent {
+            lowBatteryNotificationSent = true
+            postDynamicIslandNotification(
+                DynamicIslandNotification(
+                    kind: .battery,
+                    title: "Battery Low",
+                    subtitle: "\(percent)%",
+                    iconSystemName: batteryIconName(for: percent),
+                    duration: 3.0,
+                    batteryPercent: percent,
+                    isCharging: false,
+                    batteryIconSystemName: batteryIconName(for: percent)
+                )
+            )
+        } else if percent > 25 {
+            lowBatteryNotificationSent = false
+        }
+
+        postFullChargeNotificationIfNeeded()
+    }
+
+    private func postFullChargeNotificationIfNeeded() {
+        guard Defaults[.enableDynamicIslandNotifications], Defaults[.enableBatteryStatusNotifications] else { return }
+        let percent = Int(levelBattery.rounded())
+        let fullThreshold = max(95, Int(maxCapacity.rounded()))
+        guard percent >= fullThreshold, isPluggedIn, !fullChargeNotificationSent else { return }
+
+        fullChargeNotificationSent = true
+        postDynamicIslandNotification(
+            DynamicIslandNotification(
+                kind: .battery,
+                title: "Fully Charged",
+                subtitle: "\(percent)%",
+                iconSystemName: "battery.100",
+                duration: 3.0,
+                batteryPercent: percent,
+                isCharging: isCharging,
+                batteryIconSystemName: "battery.100",
+                statusAccent: "green"
+            )
+        )
+    }
+
+
+    private func postDynamicIslandNotification(_ notification: DynamicIslandNotification) {
+        Task { @MainActor in
+            DynamicIslandNotificationManager.shared.post(notification)
+        }
+    }
+
+    private func batteryIconName(for percent: Int) -> String {
+        switch percent {
+        case 0...20: return "battery.25"
+        case 21...55: return "battery.50"
+        case 56...85: return "battery.75"
+        default: return "battery.100"
         }
     }
 

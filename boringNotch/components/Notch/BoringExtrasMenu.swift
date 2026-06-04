@@ -5,6 +5,7 @@
 //  Created by Harsh Vardhan  Goswami  on 04/08/24.
 //
 
+import Defaults
 import SwiftUI
 
 struct BoringLargeButtons: View {
@@ -16,7 +17,21 @@ struct BoringLargeButtons: View {
             action:action,
             label: {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12.0).fill(.black).frame(width: 70, height: 70)
+                    RoundedRectangle(cornerRadius: 12.0)
+                        .fill(Defaults[.liquidGlassDynamicIsland] ? Color.white.opacity(0.08) : Color.black)
+                        .background {
+                            if Defaults[.liquidGlassDynamicIsland] {
+                                RoundedRectangle(cornerRadius: 12.0)
+                                    .fill(.ultraThinMaterial)
+                            }
+                        }
+                        .overlay {
+                            if Defaults[.liquidGlassDynamicIsland] {
+                                RoundedRectangle(cornerRadius: 12.0)
+                                    .stroke(Color.white.opacity(0.18), lineWidth: 0.8)
+                            }
+                        }
+                        .frame(width: 70, height: 70)
                     VStack(spacing: 8) {
                         icon.resizable()
                             .aspectRatio(contentMode: .fit).frame(width:20)
@@ -59,7 +74,7 @@ struct BoringExtrasMenu : View {
             }
         }) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12.0).fill(.black).frame(width: 70, height: 70)
+                RoundedRectangle(cornerRadius: 12.0).fill(Defaults[.liquidGlassDynamicIsland] ? Color.white.opacity(0.08) : Color.black).background { if Defaults[.liquidGlassDynamicIsland] { RoundedRectangle(cornerRadius: 12.0).fill(.ultraThinMaterial) } }.overlay { if Defaults[.liquidGlassDynamicIsland] { RoundedRectangle(cornerRadius: 12.0).stroke(Color.white.opacity(0.18), lineWidth: 0.8) } }.frame(width: 70, height: 70)
                 VStack(spacing: 8) {
                     Image(systemName: "gear").resizable()
                         .aspectRatio(contentMode: .fit).frame(width:20)
