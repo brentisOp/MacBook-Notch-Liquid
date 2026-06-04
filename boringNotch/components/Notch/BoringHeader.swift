@@ -29,7 +29,11 @@ struct BoringHeader: View {
 
             if vm.notchState == .open {
                 Rectangle()
-                    .fill(NSScreen.screen(withUUID: coordinator.selectedScreenUUID)?.safeAreaInsets.top ?? 0 > 0 ? .black : .clear)
+                    .fill(
+                        NSScreen.screen(withUUID: coordinator.selectedScreenUUID)?.safeAreaInsets.top ?? 0 > 0
+                            ? (Defaults[.liquidGlassDynamicIsland] ? Color.black.opacity(0.10) : Color.black)
+                            : Color.clear
+                    )
                     .frame(width: vm.closedNotchSize.width)
                     .mask {
                         NotchShape()
@@ -47,7 +51,17 @@ struct BoringHeader: View {
                                 vm.toggleCameraPreview()
                             }) {
                                 Capsule()
-                                    .fill(.black)
+                                    .fill(Defaults[.liquidGlassDynamicIsland] ? Color.white.opacity(0.08) : Color.black)
+                                    .background {
+                                        if Defaults[.liquidGlassDynamicIsland] {
+                                            Capsule().fill(.ultraThinMaterial)
+                                        }
+                                    }
+                                    .overlay {
+                                        if Defaults[.liquidGlassDynamicIsland] {
+                                            Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8)
+                                        }
+                                    }
                                     .frame(width: 30, height: 30)
                                     .overlay {
                                         Image(systemName: "web.camera")
@@ -66,7 +80,17 @@ struct BoringHeader: View {
                                 
                             }) {
                                 Capsule()
-                                    .fill(.black)
+                                    .fill(Defaults[.liquidGlassDynamicIsland] ? Color.white.opacity(0.08) : Color.black)
+                                    .background {
+                                        if Defaults[.liquidGlassDynamicIsland] {
+                                            Capsule().fill(.ultraThinMaterial)
+                                        }
+                                    }
+                                    .overlay {
+                                        if Defaults[.liquidGlassDynamicIsland] {
+                                            Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8)
+                                        }
+                                    }
                                     .frame(width: 30, height: 30)
                                     .overlay {
                                         Image(systemName: "gear")

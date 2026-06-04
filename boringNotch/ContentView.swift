@@ -144,8 +144,10 @@ struct ContentView: View {
                     .background {
                         if liquidGlassDynamicIsland {
                             LiquidGlassDynamicIslandBackground(
+                                shape: currentNotchShape,
                                 isOpen: vm.notchState == .open,
-                                isHovered: isHovering
+                                isHovered: isHovering,
+                                isNotificationVisible: shouldShowDynamicIslandNotification
                             )
                         } else {
                             Color.black
@@ -154,7 +156,7 @@ struct ContentView: View {
                     .clipShape(currentNotchShape)
                     .overlay(alignment: .top) {
                         Rectangle()
-                            .fill(liquidGlassDynamicIsland ? Color.white.opacity(vm.notchState == .open || isHovering ? 0.18 : 0.1) : Color.black)
+                            .fill(liquidGlassDynamicIsland ? Color.white.opacity(vm.notchState == .open || isHovering ? 0.10 : 0.04) : Color.black)
                             .frame(height: 1)
                             .padding(.horizontal, topCornerRadius)
                     }
@@ -246,7 +248,7 @@ struct ContentView: View {
                     }
                 if vm.chinHeight > 0 {
                     Rectangle()
-                        .fill(liquidGlassDynamicIsland ? Color.black.opacity(0.08) : Color.black.opacity(0.01))
+                        .fill(liquidGlassDynamicIsland ? Color.black.opacity(0.035) : Color.black.opacity(0.01))
                         .frame(width: computedChinWidth, height: vm.chinHeight)
                 }
             }
@@ -325,7 +327,7 @@ struct ContentView: View {
                             HStack {
                                 Text(batteryModel.statusText)
                                     .font(.subheadline)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(liquidGlassDynamicIsland ? Color.white.opacity(0.88) : .white)
                             }
 
                             Rectangle()
@@ -425,10 +427,10 @@ struct ContentView: View {
                         insertion: .scale(scale: 0.92, anchor: .top)
                             .combined(with: .opacity)
                             .combined(with: .offset(y: -8))
-                            .animation(DynamicIslandAnimations.contentInsertion),
+                            .animation(DynamicIslandAnimations.contentAppear),
                         removal: .opacity
                             .combined(with: .scale(scale: 0.96, anchor: .top))
-                            .animation(DynamicIslandAnimations.contentRemoval)
+                            .animation(DynamicIslandAnimations.contentDisappear)
                     )
                 )
                 .zIndex(1)
@@ -485,8 +487,10 @@ struct ContentView: View {
                         {
                             MarqueeText(
                                 .constant(musicManager.songTitle),
-                                textColor: Defaults[.coloredSpectrogram]
-                                    ? Color(nsColor: musicManager.avgColor) : Color.gray,
+                                textColor: liquidGlassDynamicIsland
+                                    ? Color.white.opacity(0.88)
+                                    : Defaults[.coloredSpectrogram]
+                                        ? Color(nsColor: musicManager.avgColor) : Color.gray,
                                 minDuration: 0.4,
                                 frameWidth: 100
                             )
@@ -501,9 +505,11 @@ struct ContentView: View {
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                                 .foregroundStyle(
-                                    Defaults[.coloredSpectrogram]
-                                        ? Color(nsColor: musicManager.avgColor)
-                                        : Color.gray
+                                    liquidGlassDynamicIsland
+                                        ? Color.white.opacity(0.62)
+                                        : Defaults[.coloredSpectrogram]
+                                            ? Color(nsColor: musicManager.avgColor)
+                                            : Color.gray
                                 )
                                 .opacity(
                                     (coordinator.expandingView.show
@@ -617,7 +623,7 @@ struct ContentView: View {
     }
 
     private var notchInteriorFillerColor: Color {
-        liquidGlassDynamicIsland ? Color.black.opacity(0.16) : Color.black
+        liquidGlassDynamicIsland ? Color.black.opacity(0.08) : Color.black
     }
 
     private func doOpen() {

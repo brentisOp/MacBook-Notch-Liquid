@@ -30,22 +30,34 @@ enum DynamicIslandAnimations {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
-    static var openShell: Animation {
+    static var islandOpen: Animation {
         reduceMotionEnabled
             ? .easeOut(duration: 0.18)
-            : .interpolatingSpring(mass: 0.85, stiffness: 210, damping: 22, initialVelocity: 0.4)
+            : .interpolatingSpring(mass: 0.85, stiffness: 210, damping: 22, initialVelocity: 0.35)
+    }
+
+    static var islandClose: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.14)
+            : .interpolatingSpring(mass: 0.9, stiffness: 270, damping: 31, initialVelocity: 0)
+    }
+
+    static var glassHover: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.12)
+            : .spring(response: 0.24, dampingFraction: 0.8, blendDuration: 0)
+    }
+
+    static var openShell: Animation {
+        islandOpen
     }
 
     static var closeShell: Animation {
-        reduceMotionEnabled
-            ? .easeOut(duration: 0.14)
-            : .interpolatingSpring(mass: 0.9, stiffness: 260, damping: 30, initialVelocity: 0)
+        islandClose
     }
 
     static var hoverLift: Animation {
-        reduceMotionEnabled
-            ? .easeOut(duration: 0.12)
-            : .spring(response: 0.24, dampingFraction: 0.78, blendDuration: 0)
+        glassHover
     }
 
     static var gestureStretch: Animation {
@@ -60,16 +72,26 @@ enum DynamicIslandAnimations {
             : .smooth(duration: 0.24).delay(0.06)
     }
 
-    static var contentRemoval: Animation {
+    static var contentDisappear: Animation {
         reduceMotionEnabled
             ? .easeOut(duration: 0.1)
-            : .easeOut(duration: 0.16)
+            : .easeOut(duration: 0.15)
+    }
+
+    static var contentRemoval: Animation {
+        contentDisappear
+    }
+
+    static var contentAppear: Animation {
+        reduceMotionEnabled
+            ? .easeOut(duration: 0.12)
+            : .smooth(duration: 0.24).delay(0.06)
     }
 
     static var notificationInsertion: Animation {
         reduceMotionEnabled
             ? .easeOut(duration: 0.12)
-            : .smooth(duration: 0.22)
+            : .smooth(duration: 0.22).delay(0.03)
     }
 
     static var notificationRemoval: Animation {
